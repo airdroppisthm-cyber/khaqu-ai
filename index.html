@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KhaQu AI</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a1a2e">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -17,21 +14,16 @@
             display: flex;
             flex-direction: column;
         }
-        
         .header {
             background: rgba(0,0,0,0.3);
-            padding: 15px 20px;
+            padding: 15px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        
         .header h1 {
-            font-size: 1.5rem;
             background: linear-gradient(45deg, #00d4ff, #7b2cbf);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        
         .chat-container {
             flex: 1;
             overflow-y: auto;
@@ -40,42 +32,29 @@
             flex-direction: column;
             gap: 15px;
         }
-        
         .message {
             max-width: 85%;
             padding: 12px 16px;
             border-radius: 18px;
             line-height: 1.5;
-            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
         .user-message {
             align-self: flex-end;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-bottom-right-radius: 4px;
         }
-        
         .ai-message {
             align-self: flex-start;
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.1);
-            border-bottom-left-radius: 4px;
         }
-        
         .input-container {
-            padding: 15px 20px;
+            padding: 15px;
             background: rgba(0,0,0,0.3);
-            border-top: 1px solid rgba(255,255,255,0.1);
             display: flex;
             gap: 10px;
         }
-        
         #userInput {
             flex: 1;
             padding: 12px 20px;
@@ -84,11 +63,7 @@
             background: rgba(255,255,255,0.1);
             color: white;
             font-size: 16px;
-            outline: none;
         }
-        
-        #userInput::placeholder { color: rgba(255,255,255,0.5); }
-        
         #sendBtn {
             padding: 12px 24px;
             border: none;
@@ -96,89 +71,45 @@
             background: linear-gradient(135deg, #00d4ff 0%, #7b2cbf 100%);
             color: white;
             font-weight: bold;
-            cursor: pointer;
         }
-        
-        #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .typing {
-            display: flex;
-            gap: 5px;
-            padding: 15px;
-        }
-        
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #00d4ff;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-        
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-        
-        .error { color: #ff6b6b; font-size: 14px; }
-        .success { color: #51cf66; font-size: 14px; }
+        .error { color: #ff6b6b; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🤖 KhaQu AI</h1>
-        <small>Powered by Multiple AI Models</small>
+        <small>Smart Assistant</small>
     </div>
     
     <div class="chat-container" id="chatContainer">
         <div class="message ai-message">
-            Hello! I'm KhaQu AI. I can answer questions, write code, analyze topics, and help with research. What would you like to know?
+            Hello! I'm KhaQu. I can search the web, answer questions, and help with tasks. What would you like to know?
         </div>
     </div>
     
     <div class="input-container">
-        <input type="text" id="userInput" placeholder="Ask me anything..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off">
         <button id="sendBtn" onclick="sendMessage()">Send</button>
     </div>
 
     <script>
-        // Free AI APIs that actually work
-        const AI_ENDPOINTS = [
-            // Pollinations AI (completely free, no key)
-            {
-                name: 'Pollinations',
-                url: 'https://text.pollinations.ai/',
-                method: 'GET',
-                buildUrl: (prompt) => `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&seed=${Date.now()}`,
-                parse: (text) => text
-            },
-            // Venice AI (free tier)
-            {
-                name: 'Venice',
-                url: 'https://venice.ai/api/inference',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: (prompt) => JSON.stringify({
-                    prompt: prompt,
-                    model: 'llama-3.3-70b'
-                }),
-                parse: (data) => data.text || data.response
-            }
-        ];
-
-        let currentAI = 0;
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
 
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
+        // Simple but effective responses
+        const knowledgeBase = {
+            'hello': 'Hi there! How can I help you today?',
+            'hi': 'Hello! What would you like to know?',
+            'how are you': 'I am doing great, thanks for asking! How can I assist you?',
+            'what is your name': 'I am KhaQu AI, your personal assistant.',
+            'who made you': 'I was created by a developer using open-source technology.',
+            'what can you do': 'I can search the web, answer questions, help with coding, math, and general knowledge.',
+            'help': 'Try asking me to: search [topic], calculate [math], or ask any question!',
+            'bye': 'Goodbye! Have a great day!',
+            'thank you': 'You are welcome! Happy to help.',
+            'thanks': 'You are welcome!'
+        };
 
         function addMessage(text, isUser) {
             const div = document.createElement('div');
@@ -188,68 +119,36 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function showTyping() {
-            const div = document.createElement('div');
-            div.className = 'message ai-message typing';
-            div.id = 'typingIndicator';
-            div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
-            chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function hideTyping() {
-            const indicator = document.getElementById('typingIndicator');
-            if (indicator) indicator.remove();
-        }
-
-        async function tryAI(prompt, endpointIndex = 0) {
-            if (endpointIndex >= AI_ENDPOINTS.length) {
-                throw new Error('All AI endpoints failed');
-            }
-
-            const endpoint = AI_ENDPOINTS[endpointIndex];
-            
+        async function searchWeb(query) {
             try {
-                let url = endpoint.url;
-                let options = {
-                    method: endpoint.method,
-                    headers: endpoint.headers || {}
-                };
-
-                if (endpoint.method === 'GET') {
-                    url = endpoint.buildUrl(prompt);
-                } else {
-                    options.body = endpoint.body(prompt);
+                // Use DuckDuckGo via CORS proxy
+                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://html.duckduckgo.com/html/?q=' + query)}`);
+                const data = await response.json();
+                
+                // Parse results from HTML
+                const html = data.contents;
+                const titles = html.match(/class="result__a"[^>]*>([^<]+)/g) || [];
+                
+                if (titles.length > 0) {
+                    const results = titles.slice(0, 3).map(t => {
+                        return t.replace(/class="result__a"[^>]*>/, '').replace(/<[^>]+>/g, '');
+                    });
+                    return 'Here is what I found:\n\n' + results.join('\n\n');
                 }
+                return 'No results found. Try a different search term.';
+            } catch (e) {
+                return 'Search failed. Try: https://duckduckgo.com/?q=' + encodeURIComponent(query);
+            }
+        }
 
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 20000);
-                
-                options.signal = controller.signal;
-
-                const response = await fetch(url, options);
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const result = endpoint.method === 'GET' 
-                    ? await response.text() 
-                    : await response.json();
-                
-                const parsed = endpoint.parse(result);
-                
-                if (parsed && parsed.length > 10) {
-                    return parsed;
-                }
-                
-                throw new Error('Empty response');
-
-            } catch (error) {
-                console.log(`${endpoint.name} failed:`, error);
-                // Try next endpoint
-                return tryAI(prompt, endpointIndex + 1);
+        function calculate(expr) {
+            try {
+                // Clean expression
+                expr = expr.replace(/[^0-9+\-*/().\s]/g, '');
+                const result = Function('"use strict"; return (' + expr + ')')();
+                return expr + ' = ' + result;
+            } catch (e) {
+                return 'Could not calculate. Try: 5 + 3 * 2';
             }
         }
 
@@ -260,38 +159,38 @@
             addMessage(text, true);
             userInput.value = '';
             sendBtn.disabled = true;
-            showTyping();
 
-            try {
-                // Enhance prompt for better responses
-                const enhancedPrompt = `You are KhaQu AI, a helpful assistant. Answer concisely and accurately. User: ${text}`;
-                
-                const response = await tryAI(enhancedPrompt);
-                hideTyping();
-                
-                // Clean up response
-                const cleanResponse = response
-                    .replace(/^User:.*$/gm, '')
-                    .replace(/^Assistant:.*$/gm, '')
-                    .replace(/^\s+|\s+$/g, '')
-                    .substring(0, 1000); // Limit length
-                
-                addMessage(cleanResponse || "I received an empty response. Please try again.", false);
-                
-            } catch (error) {
-                hideTyping();
-                console.error(error);
-                addMessage("I'm having trouble connecting to my AI brain. This might be due to high traffic or network issues. Please try again in a moment, or ask a simpler question.", false);
+            const lowerText = text.toLowerCase();
+            let response = '';
+
+            // Check for commands
+            if (lowerText.startsWith('search ')) {
+                const query = text.substring(7);
+                addMessage('Searching...', false);
+                response = await searchWeb(query);
+            } else if (lowerText.startsWith('calculate ')) {
+                const expr = text.substring(10);
+                response = calculate(expr);
+            } else if (knowledgeBase[lowerText]) {
+                response = knowledgeBase[lowerText];
+            } else {
+                // Smart fallback with web search
+                response = await searchWeb(text);
             }
 
+            // Remove "Searching..." if present
+            const lastMsg = chatContainer.lastElementChild;
+            if (lastMsg && lastMsg.textContent === 'Searching...') {
+                lastMsg.remove();
+            }
+
+            addMessage(response, false);
             sendBtn.disabled = false;
-            userInput.focus();
         }
 
-        // Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(console.error);
-        }
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>
