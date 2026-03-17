@@ -7,11 +7,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a1a2e">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -91,9 +87,7 @@
             outline: none;
         }
         
-        #userInput::placeholder {
-            color: rgba(255,255,255,0.5);
-        }
+        #userInput::placeholder { color: rgba(255,255,255,0.5); }
         
         #sendBtn {
             padding: 12px 24px;
@@ -103,17 +97,9 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s;
         }
         
-        #sendBtn:active {
-            transform: scale(0.95);
-        }
-        
-        #sendBtn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .typing {
             display: flex;
@@ -137,84 +123,59 @@
             30% { transform: translateY(-10px); }
         }
         
-        .offline-badge {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff4757;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            display: none;
-        }
+        .error { color: #ff6b6b; font-size: 14px; }
+        .success { color: #51cf66; font-size: 14px; }
     </style>
 </head>
 <body>
-    <div class="offline-badge" id="offlineBadge">Offline</div>
-    
     <div class="header">
         <h1>🤖 KhaQu AI</h1>
-        <small>Advanced AI Assistant</small>
+        <small>Powered by Multiple AI Models</small>
     </div>
     
     <div class="chat-container" id="chatContainer">
         <div class="message ai-message">
-            Hello! I'm KhaQu AI, your advanced assistant. I can answer questions, help with coding, creative writing, analysis, and much more. What would you like to discuss?
+            Hello! I'm KhaQu AI. I can answer questions, write code, analyze topics, and help with research. What would you like to know?
         </div>
     </div>
     
     <div class="input-container">
-        <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="Ask me anything..." autocomplete="off">
         <button id="sendBtn" onclick="sendMessage()">Send</button>
     </div>
 
     <script>
-        // Multiple free AI providers for redundancy
-        const AI_PROVIDERS = [
+        // Free AI APIs that actually work
+        const AI_ENDPOINTS = [
+            // Pollinations AI (completely free, no key)
             {
-                name: 'HuggingFace',
-                url: 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+                name: 'Pollinations',
+                url: 'https://text.pollinations.ai/',
+                method: 'GET',
+                buildUrl: (prompt) => `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&seed=${Date.now()}`,
+                parse: (text) => text
+            },
+            // Venice AI (free tier)
+            {
+                name: 'Venice',
+                url: 'https://venice.ai/api/inference',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                formatBody: (prompt) => JSON.stringify({
-                    inputs: `<s>[INST] ${prompt} [/INST]`,
-                    parameters: {
-                        max_new_tokens: 500,
-                        temperature: 0.7,
-                        return_full_text: false
-                    }
+                body: (prompt) => JSON.stringify({
+                    prompt: prompt,
+                    model: 'llama-3.3-70b'
                 }),
-                parseResponse: (data) => {
-                    if (Array.isArray(data) && data[0]?.generated_text) {
-                        return data[0].generated_text.trim();
-                    }
-                    return null;
-                }
-            },
-            {
-                name: 'Together AI',
-                url: 'https://api.together.xyz/v1/chat/completions',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' // Free tier works without key (limited)
-                },
-                formatBody: (prompt) => JSON.stringify({
-                    model: "mistralai/Mistral-7B-Instruct-v0.2",
-                    messages: [{role: "user", content: prompt}],
-                    max_tokens: 500,
-                    temperature: 0.7
-                }),
-                parseResponse: (data) => data.choices?.[0]?.message?.content
+                parse: (data) => data.text || data.response
             }
         ];
 
-        let currentProvider = 0;
+        let currentAI = 0;
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
 
-        // Handle Enter key
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
@@ -241,46 +202,54 @@
             if (indicator) indicator.remove();
         }
 
-        async function callAI(prompt) {
-            const provider = AI_PROVIDERS[currentProvider];
+        async function tryAI(prompt, endpointIndex = 0) {
+            if (endpointIndex >= AI_ENDPOINTS.length) {
+                throw new Error('All AI endpoints failed');
+            }
+
+            const endpoint = AI_ENDPOINTS[endpointIndex];
             
             try {
+                let url = endpoint.url;
+                let options = {
+                    method: endpoint.method,
+                    headers: endpoint.headers || {}
+                };
+
+                if (endpoint.method === 'GET') {
+                    url = endpoint.buildUrl(prompt);
+                } else {
+                    options.body = endpoint.body(prompt);
+                }
+
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                const timeoutId = setTimeout(() => controller.abort(), 20000);
+                
+                options.signal = controller.signal;
 
-                const response = await fetch(provider.url, {
-                    method: 'POST',
-                    headers: provider.headers,
-                    body: provider.formatBody(prompt),
-                    signal: controller.signal
-                });
-
+                const response = await fetch(url, options);
                 clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
 
-                const data = await response.json();
-                const result = provider.parseResponse(data);
+                const result = endpoint.method === 'GET' 
+                    ? await response.text() 
+                    : await response.json();
                 
-                if (result) return result;
+                const parsed = endpoint.parse(result);
                 
-                // Try next provider if this one fails
-                currentProvider = (currentProvider + 1) % AI_PROVIDERS.length;
-                return await callAI(prompt);
-                
-            } catch (error) {
-                console.error(`${provider.name} failed:`, error);
-                
-                // Try next provider
-                currentProvider = (currentProvider + 1) % AI_PROVIDERS.length;
-                
-                if (currentProvider !== 0) {
-                    return await callAI(prompt);
+                if (parsed && parsed.length > 10) {
+                    return parsed;
                 }
                 
-                throw new Error('All AI providers failed');
+                throw new Error('Empty response');
+
+            } catch (error) {
+                console.log(`${endpoint.name} failed:`, error);
+                // Try next endpoint
+                return tryAI(prompt, endpointIndex + 1);
             }
         }
 
@@ -288,40 +257,41 @@
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Add user message
             addMessage(text, true);
             userInput.value = '';
             sendBtn.disabled = true;
             showTyping();
 
             try {
-                const response = await callAI(text);
+                // Enhance prompt for better responses
+                const enhancedPrompt = `You are KhaQu AI, a helpful assistant. Answer concisely and accurately. User: ${text}`;
+                
+                const response = await tryAI(enhancedPrompt);
                 hideTyping();
-                addMessage(response, false);
+                
+                // Clean up response
+                const cleanResponse = response
+                    .replace(/^User:.*$/gm, '')
+                    .replace(/^Assistant:.*$/gm, '')
+                    .replace(/^\s+|\s+$/g, '')
+                    .substring(0, 1000); // Limit length
+                
+                addMessage(cleanResponse || "I received an empty response. Please try again.", false);
+                
             } catch (error) {
                 hideTyping();
-                addMessage('Sorry, I encountered an error. Please check your internet connection or try again in a moment.', false);
                 console.error(error);
+                addMessage("I'm having trouble connecting to my AI brain. This might be due to high traffic or network issues. Please try again in a moment, or ask a simpler question.", false);
             }
 
             sendBtn.disabled = false;
             userInput.focus();
         }
 
-        // Check online status
-        window.addEventListener('online', () => {
-            document.getElementById('offlineBadge').style.display = 'none';
-        });
-        
-        window.addEventListener('offline', () => {
-            document.getElementById('offlineBadge').style.display = 'block';
-        });
-
-        // Register service worker for PWA
+        // Service Worker for PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(console.error);
         }
     </script>
 </body>
-  </html>
-  
+</html>
